@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"github.com/mailgun/cli"
 	log "github.com/mailgun/gotools-log"
-	"github.com/mailgun/vulcanb/config"
-	"github.com/mailgun/vulcanb/model"
+	"github.com/mailgun/pong/config"
+	"github.com/mailgun/pong/model"
 	"os"
 	"os/signal"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "vulcanb"
+	app.Name = "pong"
 	app.Usage = "Command line tool that generates endpoints with different behavior for testing purposes"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{"c, config", "", "Yaml file with endpoint specifications"},

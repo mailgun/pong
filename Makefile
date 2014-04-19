@@ -20,4 +20,5 @@ sloccount:
 	 find . -name "*.go" -print0 | xargs -0 wc -l
 
 install: clean
-	go install github.com/mailgun/vulcanb
+	go install github.com/mailgun/pong
+

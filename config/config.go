@@ -4,7 +4,7 @@ import (
 	"fmt"
 	cfg "github.com/mailgun/gotools-config"
 	log "github.com/mailgun/gotools-log"
-	"github.com/mailgun/vulcanb/model"
+	"github.com/mailgun/pong/model"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -69,11 +69,11 @@ func parseServer(in *Server) (*model.Server, error) {
 	}
 	mux := http.NewServeMux()
 	for key, m := range in.Handlers {
-		handlerFn, err := buildHandler(m)
+		handler, err := buildHandler(m)
 		if err != nil {
 			return nil, err
 		}
-		mux.HandleFunc(key, handlerFn)
+		mux.Handle(key, handler)
 	}
 	return &model.Server{
 		Addr:         in.Addr,
@@ -83,21 +83,29 @@ func parseServer(in *Server) (*model.Server, error) {
 	}, nil
 }
 
-func buildHandler(distribution map[string]*Response) (HandlerFn, error) {
+type Responder struct {
+	Responses []*model.Response
+	index     int
+}
+
+func (re *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r := re.Responses[re.index]
+	re.index = (re.index + 1) % len(re.Responses)
+
+	if r.Delay > 0 {
+		time.Sleep(r.Delay)
+	}
+	w.Header().Set("Content-Type", r.ContentType)
+	w.Write([]byte(r.Body))
+}
+
+func buildHandler(distribution map[string]*Response) (http.Handler, error) {
 	responses, err := buildResponses(distribution)
 	if err != nil {
 		return nil, err
 	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		for {
-			for _, r := range responses {
-				if r.Delay > 0 {
-					time.Sleep(r.Delay)
-				}
-				w.Header().Set("Content-Type", r.ContentType)
-				w.Write([]byte(r.Body))
-			}
-		}
+	return &Responder{
+		Responses: responses,
 	}, nil
 }
 

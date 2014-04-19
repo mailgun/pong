@@ -5,8 +5,12 @@ servers:
     writetimeout: 10s
     handlers:
       /:
-        100%:
+        50%:
           code: 200
+          body: ok
+          delay: 0s
+        50%:
+          code: 500
           body: ok
           delay: 0s
 
