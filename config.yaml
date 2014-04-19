@@ -1,0 +1,15 @@
+servers:
+  - addr: localhost:5000
+    path: /hello
+    readtimeout: 10s
+    writetimeout: 10s
+    handlers:
+      /:
+        100%:
+          code: 200
+          body: ok
+          delay: 0s
+
+logging:
+  - name: console
+  - name: syslog
