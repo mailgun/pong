@@ -1,18 +1,18 @@
 servers:
   - addr: localhost:5000
-    path: /hello
     readtimeout: 10s
     writetimeout: 10s
     handlers:
       /:
-        50%:
+        - rate: 50%
           code: 200
           body: ok
           delay: 0s
-        50%:
+
+        - rate: 50%
           code: 500
-          body: ok
-          delay: 0s
+          body: not ok
+          delay: 1s
 
 logging:
   - name: console

@@ -20,19 +20,22 @@ pong -c config.yaml
 Examples:
 
 
-Starts the server that response 200 and ok to all requests going to /hello
+Starts the server that responds ok 50% of requests, hangs for 1 second and responds 500 another 50% of the requests.
 
 ```yaml
 servers:
   - addr: localhost:5000
-    path: /hello
     readtimeout: 10s
     writetimeout: 10s
     handlers:
       /:
-        100%:
+        - rate: 50%
           code: 200
           body: ok
           delay: 0s
-          contenttype: text/plain
+
+        - rate: 50%
+          code: 500
+          body: not ok
+          delay: 1s
 ```

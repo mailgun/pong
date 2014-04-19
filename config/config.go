@@ -13,6 +13,7 @@ import (
 )
 
 type Response struct {
+	Rate        string
 	Code        int
 	Body        string
 	ContentType string
@@ -22,7 +23,7 @@ type Response struct {
 type Server struct {
 	Addr         string
 	Path         string
-	Handlers     map[string]map[string]*Response
+	Handlers     map[string][]*Response
 	ReadTimeout  string
 	WriteTimeout string
 }
@@ -93,13 +94,15 @@ func (re *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	re.index = (re.index + 1) % len(re.Responses)
 
 	if r.Delay > 0 {
+		log.Infof("Sleeping: %s", r.Delay)
 		time.Sleep(r.Delay)
 	}
+	w.WriteHeader(r.Code)
 	w.Header().Set("Content-Type", r.ContentType)
 	w.Write([]byte(r.Body))
 }
 
-func buildHandler(distribution map[string]*Response) (http.Handler, error) {
+func buildHandler(distribution []*Response) (http.Handler, error) {
 	responses, err := buildResponses(distribution)
 	if err != nil {
 		return nil, err
@@ -109,20 +112,21 @@ func buildHandler(distribution map[string]*Response) (http.Handler, error) {
 	}, nil
 }
 
-func buildResponses(responses map[string]*Response) ([]*model.Response, error) {
+func buildResponses(responses []*Response) ([]*model.Response, error) {
 	out := []*model.Response{}
 	total := 0
-	for percent, re := range responses {
+	for _, re := range responses {
 		duration, err := time.ParseDuration(re.Delay)
 		if err != nil {
 			return nil, fmt.Errorf("Bad delday '%s', should me in form '1s'", re.Delay)
 		}
-		count, err := parsePercent(percent)
+		count, err := parsePercent(re.Rate)
 		if err != nil {
 			return nil, err
 		}
 		total += count
 		for i := 0; i < count; i += 1 {
+			log.Infof("Appending %s", re.Body)
 			out = append(out, &model.Response{
 				Delay:       duration,
 				Code:        re.Code,
@@ -131,8 +135,8 @@ func buildResponses(responses map[string]*Response) ([]*model.Response, error) {
 			})
 		}
 	}
-	if total > 100 {
-		return nil, fmt.Errorf("Percentages should form 100% in sum")
+	if total != 100 {
+		return nil, fmt.Errorf("Percentages should form 100 in sum, got %d", total)
 	}
 	return shuffle(out), nil
 }
