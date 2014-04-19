@@ -1,3 +1,7 @@
+statsd:
+  url: 'localhost:8125'
+  prefix: pong
+
 servers:
   - addr: localhost:5000
     readtimeout: 10s
@@ -12,7 +16,7 @@ servers:
         - rate: 50%
           code: 500
           body: not ok
-          delay: 1s
+          delay: 0s10ms
 
 logging:
   - name: console

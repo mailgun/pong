@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/mailgun/go-statsd-client/statsd"
 	cfg "github.com/mailgun/gotools-config"
 	log "github.com/mailgun/gotools-log"
 	"github.com/mailgun/pong/model"
@@ -29,6 +30,10 @@ type Server struct {
 }
 
 type Config struct {
+	Statsd struct {
+		Url    string
+		Prefix string
+	}
 	Servers []*Server
 	Logging []*log.LogConfig
 }
@@ -40,17 +45,28 @@ func ParseConfig(path string) ([]*model.Server, []*log.LogConfig, error) {
 	if err := cfg.LoadConfig(path, &config); err != nil {
 		return nil, nil, fmt.Errorf("Failed to load config file '%s' err:", path, err)
 	}
-	servers, err := parseServers(config.Servers)
+	client, err := statsd.New(config.Statsd.Url, config.Statsd.Prefix)
+	if err != nil {
+		return nil, nil, err
+	}
+	builder := &Builder{
+		client: client,
+	}
+	servers, err := builder.parseServers(config.Servers)
 	if err != nil {
 		return nil, nil, err
 	}
 	return servers, config.Logging, nil
 }
 
-func parseServers(in []*Server) ([]*model.Server, error) {
+type Builder struct {
+	client *statsd.Client
+}
+
+func (b *Builder) parseServers(in []*Server) ([]*model.Server, error) {
 	out := make([]*model.Server, len(in))
 	for i, cserver := range in {
-		serv, err := parseServer(cserver)
+		serv, err := b.parseServer(cserver)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +75,7 @@ func parseServers(in []*Server) ([]*model.Server, error) {
 	return out, nil
 }
 
-func parseServer(in *Server) (*model.Server, error) {
+func (b *Builder) parseServer(in *Server) (*model.Server, error) {
 	readTimeout, err := time.ParseDuration(in.ReadTimeout)
 	if err != nil {
 		return nil, err
@@ -70,7 +86,7 @@ func parseServer(in *Server) (*model.Server, error) {
 	}
 	mux := http.NewServeMux()
 	for key, m := range in.Handlers {
-		handler, err := buildHandler(m)
+		handler, err := b.buildHandler(m)
 		if err != nil {
 			return nil, err
 		}
@@ -85,16 +101,18 @@ func parseServer(in *Server) (*model.Server, error) {
 }
 
 type Responder struct {
-	Responses []*model.Response
+	responses []*model.Response
 	index     int
+	client    *statsd.Client
 }
 
-func (re *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	r := re.Responses[re.index]
-	re.index = (re.index + 1) % len(re.Responses)
+func (d *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	r := d.responses[d.index]
+	d.index = (d.index + 1) % len(d.responses)
+
+	d.client.Inc(metric("requests"), 1, 1)
 
 	if r.Delay > 0 {
-		log.Infof("Sleeping: %s", r.Delay)
 		time.Sleep(r.Delay)
 	}
 	w.WriteHeader(r.Code)
@@ -102,17 +120,18 @@ func (re *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(r.Body))
 }
 
-func buildHandler(distribution []*Response) (http.Handler, error) {
-	responses, err := buildResponses(distribution)
+func (b *Builder) buildHandler(distribution []*Response) (http.Handler, error) {
+	responses, err := b.buildResponses(distribution)
 	if err != nil {
 		return nil, err
 	}
 	return &Responder{
-		Responses: responses,
+		responses: responses,
+		client:    b.client,
 	}, nil
 }
 
-func buildResponses(responses []*Response) ([]*model.Response, error) {
+func (b *Builder) buildResponses(responses []*Response) ([]*model.Response, error) {
 	out := []*model.Response{}
 	total := 0
 	for _, re := range responses {
@@ -160,4 +179,8 @@ func parsePercent(in string) (int, error) {
 		return -1, fmt.Errorf("Percentage value should be withing 0% to 100%")
 	}
 	return num, nil
+}
+
+func metric(vals ...string) string {
+	return strings.Join(vals, ".")
 }

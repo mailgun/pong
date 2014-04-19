@@ -2,6 +2,7 @@ test: clean
 	go test -v ./... -cover
 
 deps:
+	go get -v -u github.com/mailgun/go-statsd-client/statsd
 	go get -v -u launchpad.net/gocheck
 	go get -v -u github.com/mailgun/cli
 	go get -v -u github.com/mailgun/gotools-config
