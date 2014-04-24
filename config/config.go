@@ -19,12 +19,19 @@ type Response struct {
 	Body        string
 	ContentType string
 	Delay       string
+	Drop        bool
+}
+
+type Handler struct {
+	Id        string
+	Path      string
+	Responses []*Response
 }
 
 type Server struct {
 	Addr         string
 	Path         string
-	Handlers     map[string][]*Response
+	Handlers     []*Handler
 	ReadTimeout  string
 	WriteTimeout string
 }
@@ -45,6 +52,7 @@ func ParseConfig(path string) ([]*model.Server, []*log.LogConfig, error) {
 	if err := cfg.LoadConfig(path, &config); err != nil {
 		return nil, nil, fmt.Errorf("Failed to load config file '%s' err:", path, err)
 	}
+
 	client, err := statsd.New(config.Statsd.Url, config.Statsd.Prefix)
 	if err != nil {
 		return nil, nil, err
@@ -85,12 +93,12 @@ func (b *Builder) parseServer(in *Server) (*model.Server, error) {
 		return nil, err
 	}
 	mux := http.NewServeMux()
-	for key, m := range in.Handlers {
-		handler, err := b.buildHandler(m)
+	for _, h := range in.Handlers {
+		handler, err := b.buildHandler(h.Id, h.Responses)
 		if err != nil {
 			return nil, err
 		}
-		mux.Handle(key, handler)
+		mux.Handle(h.Path, handler)
 	}
 	return &model.Server{
 		Addr:         in.Addr,
@@ -101,6 +109,7 @@ func (b *Builder) parseServer(in *Server) (*model.Server, error) {
 }
 
 type Responder struct {
+	id        string
 	responses []*model.Response
 	index     int
 	client    *statsd.Client
@@ -111,21 +120,29 @@ func (d *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	d.index = (d.index + 1) % len(d.responses)
 
 	d.client.Inc(metric("requests"), 1, 1)
+	d.client.Inc(metric(d.id, "requests"), 1, 1)
 
 	if r.Delay > 0 {
 		time.Sleep(r.Delay)
+	}
+	if r.Drop {
+		h := w.(http.Hijacker)
+		conn, _, _ := h.Hijack()
+		conn.Close()
+		return
 	}
 	w.WriteHeader(r.Code)
 	w.Header().Set("Content-Type", r.ContentType)
 	w.Write([]byte(r.Body))
 }
 
-func (b *Builder) buildHandler(distribution []*Response) (http.Handler, error) {
+func (b *Builder) buildHandler(id string, distribution []*Response) (http.Handler, error) {
 	responses, err := b.buildResponses(distribution)
 	if err != nil {
 		return nil, err
 	}
 	return &Responder{
+		id:        id,
 		responses: responses,
 		client:    b.client,
 	}, nil
@@ -147,6 +164,7 @@ func (b *Builder) buildResponses(responses []*Response) ([]*model.Response, erro
 		for i := 0; i < count; i += 1 {
 			log.Infof("Appending %s", re.Body)
 			out = append(out, &model.Response{
+				Drop:        re.Drop,
 				Delay:       duration,
 				Code:        re.Code,
 				Body:        []byte(re.Body),

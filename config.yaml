@@ -1,5 +1,5 @@
 statsd:
-  url: 'localhost:8125'
+  url: '172.17.0.2:8125'
   prefix: pong
 
 servers:
@@ -7,16 +7,39 @@ servers:
     readtimeout: 10s
     writetimeout: 10s
     handlers:
-      /:
-        - rate: 50%
-          code: 200
-          body: ok
-          delay: 0s
+      - id: good
+        path: /
+        responses:
 
-        - rate: 50%
-          code: 500
-          body: not ok
-          delay: 0s10ms
+            - rate: 50%
+              code: 200
+              body: ok
+              delay: 0s
+
+            - rate: 50%
+              code: 500
+              body: not ok
+              drop: true
+              delay: 0s200ms
+
+  - addr: localhost:5001
+    readtimeout: 10s
+    writetimeout: 10s
+    handlers:
+      - id: bad
+        path: /
+        responses:
+
+            - rate: 50%
+              code: 200
+              body: ok
+              delay: 0s
+
+            - rate: 50%
+              code: 500
+              body: not ok
+              drop: true
+              delay: 0s200ms
 
 logging:
   - name: console

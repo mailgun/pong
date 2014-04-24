@@ -23,3 +23,6 @@ sloccount:
 install: clean
 	go install github.com/mailgun/pong
 
+run: install
+	pong -c config.yaml
+

@@ -11,9 +11,11 @@ type Response struct {
 	Body        []byte
 	ContentType string
 	Delay       time.Duration
+	Drop        bool
 }
 
 type Handler struct {
+	Id        string
 	Responses map[string]*Response
 }
 
