@@ -3,7 +3,7 @@ statsd:
   prefix: pong
 
 servers:
-  - addr: localhost:5000
+  - addr: 0.0.0.0:5000
     readtimeout: 100s
     writetimeout: 100s
     handlers:
@@ -21,7 +21,7 @@ servers:
               drop: true
               delay: 0s
 
-  - addr: localhost:5001
+  - addr: 0.0.0.0:5001
     readtimeout: 100s
     writetimeout: 100s
     handlers:
