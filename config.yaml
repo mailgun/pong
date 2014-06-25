@@ -10,15 +10,9 @@ servers:
       - id: h1
         path: /
         responses:
-            - rate: 99%
+            - rate: 100%
               code: 200
               body: ok1
-              delay: 0s
-
-            - rate: 1%
-              code: 200
-              body: ok1
-              drop: true
               delay: 0s
 
   - addr: localhost:5001
@@ -28,12 +22,66 @@ servers:
       - id: h2
         path: /
         responses:
-            - rate: 99%
+            - rate: 50%
               code: 200
               body: ok2
               delay: 0s
 
-            - rate: 1%
+            - rate: 50%
+              code: 200
+              body: ok2-drop
+              drop: true
+              delay: 0s
+
+  - addr: localhost:5002
+    readtimeout: 100s
+    writetimeout: 100s
+    handlers:
+      - id: h2
+        path: /
+        responses:
+            - rate: 10%
+              code: 200
+              body: ok2
+              delay: 0s
+
+            - rate: 90%
+              code: 200
+              body: ok2
+              drop: true
+              delay: 0s
+
+  - addr: localhost:5003
+    readtimeout: 100s
+    writetimeout: 100s
+    handlers:
+      - id: h2
+        path: /
+        responses:
+            - rate: 10%
+              code: 200
+              body: ok2
+              delay: 0s
+
+            - rate: 90%
+              code: 200
+              body: ok2
+              drop: true
+              delay: 0s
+
+  - addr: localhost:5004
+    readtimeout: 100s
+    writetimeout: 100s
+    handlers:
+      - id: h2
+        path: /
+        responses:
+            - rate: 10%
+              code: 200
+              body: ok2
+              delay: 0s
+
+            - rate: 90%
               code: 200
               body: ok2
               drop: true
