@@ -15,7 +15,7 @@ func main() {
 	app.Name = "pong"
 	app.Usage = "Command line tool that generates endpoints with different behavior for testing purposes"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"c, config", "", "Yaml file with endpoint specifications"},
+		cli.StringFlag{Name: "c, config", Usage: "Yaml file with endpoint specifications"},
 	}
 	app.Action = startService
 	app.Run(os.Args)
