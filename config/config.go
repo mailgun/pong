@@ -68,7 +68,7 @@ func ParseConfig(path string) ([]*model.Server, []*log.LogConfig, error) {
 }
 
 type Builder struct {
-	client *statsd.Client
+	client statsd.Client
 }
 
 func (b *Builder) parseServers(in []*Server) ([]*model.Server, error) {
@@ -112,7 +112,7 @@ type Responder struct {
 	id        string
 	responses []*model.Response
 	index     int
-	client    *statsd.Client
+	client    statsd.Client
 }
 
 func (d *Responder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
