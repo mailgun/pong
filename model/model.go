@@ -1,7 +1,7 @@
 package model
 
 import (
-	log "github.com/mailgun/gotools-log"
+	"github.com/mailgun/log"
 	"net/http"
 	"time"
 )

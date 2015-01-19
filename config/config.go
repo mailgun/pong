@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
+	"github.com/mailgun/cfg"
 	"github.com/mailgun/go-statsd-client/statsd"
-	cfg "github.com/mailgun/gotools-config"
-	log "github.com/mailgun/gotools-log"
+	"github.com/mailgun/log"
 	"github.com/mailgun/pong/model"
 	"math/rand"
 	"net/http"

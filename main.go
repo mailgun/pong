@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/codegangsta/cli"
-	log "github.com/mailgun/gotools-log"
+	"github.com/mailgun/log"
 	"github.com/mailgun/pong/config"
 	"github.com/mailgun/pong/model"
 	"os"
